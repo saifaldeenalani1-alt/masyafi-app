@@ -198,6 +198,12 @@ input, select, textarea, button { font-family: 'Tajawal', sans-serif; }
   font-family: 'Tajawal', sans-serif;
 }
 .tx-settle:hover { background: var(--income); color: white; }
+.tx-edit {
+  background: none; border: none; color: var(--primary);
+  font-size: 14px; cursor: pointer; padding: 4px;
+  opacity: 0.5; transition: opacity 0.2s;
+}
+.tx-edit:hover { opacity: 1; }
 .tx-settled-badge { font-size: 10px; color: var(--income); font-weight: 500; }
 .tx-remaining { font-size: 11px; color: var(--debt); font-weight: 600; margin-top: 2px; }
 .empty-state {

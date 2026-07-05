@@ -14,6 +14,7 @@ db.version(1).stores({
 let currentPage = 'home';
 let currentAccountId = null;
 let selectedTxType = 'income';
+let editingId = null;
 
 // --- التهيئة ---
 document.addEventListener('DOMContentLoaded', async () => {
@@ -160,6 +161,7 @@ async function renderTransactionList(containerId, transactions) {
     const settleBtn = isPending
       ? `<button class="tx-settle" onclick="settleTransaction(${tx.id})">${tx.type === 'debt' ? '💳 سدد' : '💰 تحصيل'}</button>`
       : '';
+    const editBtn = `<button class="tx-edit" onclick="editTransaction(${tx.id})" title="تعديل"><i class="fas fa-pen"></i></button>`;
     const settledBadge = tx.settled ? `<span class="tx-settled-badge">✅ تمت</span>` : '';
     const remainingStr = isPending
       ? `<div class="tx-remaining">متبقي: ${formatCurrency(Math.max(0, tx.remaining ?? tx.amount))}</div>`
@@ -174,6 +176,7 @@ async function renderTransactionList(containerId, transactions) {
         </div>
         <div class="tx-amount ${tx.type}">${formatCurrency(tx.amount)}</div>
         ${settleBtn}
+        ${editBtn}
         <button class="tx-delete" onclick="deleteTransaction(${tx.id})" title="حذف"><i class="fas fa-times"></i></button>
       </div>`;
   }
@@ -212,6 +215,7 @@ async function populateGroupFilters() {
 // إدارة المعاملات
 // ============================
 function showAddTransactionModal(type) {
+  editingId = null;
   selectedTxType = type || 'income';
   document.querySelectorAll('.type-option').forEach(el => el.classList.remove('selected'));
   const el = document.querySelector(`.type-option[data-type="${selectedTxType}"]`);
@@ -222,6 +226,24 @@ function showAddTransactionModal(type) {
   document.getElementById('transaction-desc').value = '';
   document.getElementById('transaction-date').value = new Date().toISOString().split('T')[0];
   populateGroupFilters();
+  openModal('add-transaction-modal');
+}
+
+async function editTransaction(id) {
+  const tx = await db.transactions.get(id);
+  if (!tx) return;
+  editingId = id;
+  selectedTxType = tx.type;
+  document.querySelectorAll('.type-option').forEach(el => el.classList.remove('selected'));
+  const el = document.querySelector(`.type-option[data-type="${tx.type}"]`);
+  if (el) el.classList.add('selected');
+  const names = { income: 'وارد', expense: 'مصروف', debt: 'دين', receivable: 'مستحق' };
+  document.getElementById('modal-transaction-title').textContent = `تعديل ${names[tx.type]}`;
+  document.getElementById('transaction-amount').value = tx.amount;
+  document.getElementById('transaction-desc').value = tx.description || '';
+  document.getElementById('transaction-date').value = tx.date;
+  populateGroupFilters();
+  document.getElementById('transaction-group').value = tx.groupId || '';
   openModal('add-transaction-modal');
 }
 
@@ -242,20 +264,48 @@ async function saveTransaction() {
   const date = document.getElementById('transaction-date').value;
   if (!amount || amount <= 0) { showToast('الرجاء إدخال مبلغ صحيح'); return; }
   if (!date) { showToast('الرجاء اختيار التاريخ'); return; }
-  await db.transactions.add({
-    accountId: currentAccountId, type: selectedTxType, amount,
-    description: description || '', groupId: groupId || null,
-    date, createdAt: new Date().toISOString(),
-    settled: false,
-    remaining: (selectedTxType === 'debt' || selectedTxType === 'receivable') ? amount : null
-  });
-  closeModal('add-transaction-modal');
-  showToast('تمت إضافة المعاملة بنجاح');
+  const isDebtTx = selectedTxType === 'debt' || selectedTxType === 'receivable';
+  if (editingId) {
+    const old = await db.transactions.get(editingId);
+    await db.transactions.update(editingId, {
+      type: selectedTxType, amount, description: description || '',
+      groupId: groupId || null, date,
+      remaining: isDebtTx && !old.settled ? amount : (old.settled ? old.remaining : null)
+    });
+    editingId = null;
+    closeModal('add-transaction-modal');
+    showToast('تم تعديل المعاملة');
+  } else {
+    await db.transactions.add({
+      accountId: currentAccountId, type: selectedTxType, amount,
+      description: description || '', groupId: groupId || null,
+      date, createdAt: new Date().toISOString(),
+      settled: false,
+      remaining: isDebtTx ? amount : null
+    });
+    closeModal('add-transaction-modal');
+    showToast('تمت إضافة المعاملة بنجاح');
+  }
   await refreshApp();
 }
 
 async function deleteTransaction(id) {
   showConfirm('حذف المعاملة', 'هل أنت متأكد من حذف هذه المعاملة؟', async () => {
+    const tx = await db.transactions.get(id);
+    if (tx.settlesId) {
+      const original = await db.transactions.get(tx.settlesId);
+      if (original) {
+        const oldRem = original.remaining ?? original.amount;
+        const newRem = oldRem + tx.amount;
+        await db.transactions.update(tx.settlesId, {
+          settled: false,
+          remaining: Math.min(newRem, original.amount)
+        });
+      }
+    } else if ((tx.type === 'debt' || tx.type === 'receivable') && tx.settled) {
+      const linked = await db.transactions.where({ settlesId: id }).toArray();
+      for (const l of linked) await db.transactions.delete(l.id);
+    }
     await db.transactions.delete(id);
     showToast('تم حذف المعاملة');
     await refreshApp();

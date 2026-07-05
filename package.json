@@ -1,8 +1,8 @@
-{
+﻿{
   "name": "masyafi",
   "version": "1.0.0",
   "private": true,
-  "description": "مصيفي - مدير الحسابات اليومية",
+  "description": "مصاريفي - مدير الحسابات اليومية",
   "scripts": {
     "build": "npx cap sync android"
   },

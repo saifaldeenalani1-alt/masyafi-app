@@ -1,5 +1,5 @@
-// ============================
-// مصيفي - تطبيق إدارة الحسابات
+﻿// ============================
+// مصاريفي - تطبيق إدارة الحسابات
 // ============================
 
 // --- قاعدة البيانات ---
@@ -62,7 +62,7 @@ function navigateTo(page) {
   const nav = document.querySelector(`.nav-item[data-page="${page}"]`);
   if (nav) nav.classList.add('active');
   const titles = { home: 'الرئيسية', transactions: 'كل المعاملات', accounts: 'الحسابات', groups: 'المجموعات', settings: 'الإعدادات', about: 'حول التطبيق' };
-  document.getElementById('page-title').textContent = titles[page] || 'مصيفي';
+  document.getElementById('page-title').textContent = titles[page] || 'مصاريفي';
   closeMenu();
   if (page === 'transactions') renderTransactions();
 }
@@ -430,7 +430,7 @@ async function backupData() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `مصيفي_نسخة_احتياطية_${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `مصاريفي_نسخة_احتياطية_${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -522,7 +522,7 @@ async function exportPDF(filter) {
             ${rowsHtml || '<tr><td colspan="5" style="text-align:center;padding:20px;color:#999">لا توجد معاملات</td></tr>'}
           </tbody>
         </table>
-        <p style="text-align:center;color:#999;font-size:11px;margin-top:20px">تم الإنشاء بواسطة تطبيق مصيفي</p>
+        <p style="text-align:center;color:#999;font-size:11px;margin-top:20px">تم الإنشاء بواسطة تطبيق مصاريفي</p>
       </div>`;
 
     // طباعة باستخدام html2canvas + jsPDF
@@ -556,7 +556,7 @@ async function exportPDF(filter) {
       doc.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
       heightLeft -= 287;
     }
-    doc.save(`مصيفي_تقرير_${new Date().toISOString().split('T')[0]}.pdf`);
+    doc.save(`مصاريفي_تقرير_${new Date().toISOString().split('T')[0]}.pdf`);
     showToast('تم تصدير PDF بنجاح');
   } catch (e) {
     showToast('خطأ في التصدير: ' + e.message);
@@ -619,7 +619,7 @@ async function exportPDFByGroup() {
             ${rowsHtml || '<tr><td colspan="4" style="text-align:center;padding:20px;color:#999">لا توجد معاملات</td></tr>'}
           </tbody>
         </table>
-        <p style="text-align:center;color:#999;font-size:11px;margin-top:20px">تم الإنشاء بواسطة تطبيق مصيفي</p>
+        <p style="text-align:center;color:#999;font-size:11px;margin-top:20px">تم الإنشاء بواسطة تطبيق مصاريفي</p>
       </div>`;
 
     const container = document.createElement('div');
@@ -652,7 +652,7 @@ async function exportPDFByGroup() {
       doc.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
       heightLeft -= 287;
     }
-    doc.save(`مصيفي_${group.name}_${new Date().toISOString().split('T')[0]}.pdf`);
+    doc.save(`مصاريفي_${group.name}_${new Date().toISOString().split('T')[0]}.pdf`);
     showToast('تم تصدير PDF بنجاح');
   } catch (e) {
     showToast('خطأ: ' + e.message);
@@ -679,7 +679,7 @@ function clearAllData() {
 // ============================
 function formatCurrency(amount) {
   const num = Number(amount) || 0;
-  return num.toLocaleString('ar-SA') + ' ر.س';
+  return num.toLocaleString('ar-SA') + ' د.ع';
 }
 
 function esc(str) {

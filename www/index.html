@@ -1,13 +1,13 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#1a73e8">
-<meta name="description" content="تطبيق مصيفي - إدارة المصاريف والواردات اليومية">
+<meta name="description" content="تطبيق مصاريفي - إدارة المصاريف والواردات اليومية">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/icon-192.png" type="image/png">
-<title>مصيفي</title>
+<title>مصاريفي</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -20,7 +20,7 @@
   <div id="splash-screen">
     <div class="splash-content">
       <div class="splash-icon">&#x1F3D6;</div>
-      <h1>مصيفي</h1>
+      <h1>مصاريفي</h1>
       <p>مدير حساباتك اليومية</p>
       <div class="loader"></div>
     </div>
@@ -44,7 +44,7 @@
     <div id="side-menu">
       <div class="menu-header">
         <div class="menu-logo">&#x1F3D6;</div>
-        <h2>مصيفي</h2>
+        <h2>مصاريفي</h2>
         <p>الإصدار 1.0</p>
       </div>
       <div class="menu-items">
@@ -78,7 +78,7 @@
         <div class="welcome-banner">
           <div class="welcome-text">
             <h3 id="greeting">مرحباً بك</h3>
-            <p id="account-balance-display">الرصيد الحالي: 0 ر.س</p>
+            <p id="account-balance-display">الرصيد الحالي: 0 د.ع</p>
           </div>
           <div class="welcome-icon">&#x1F4B0;</div>
         </div>
@@ -88,28 +88,28 @@
             <div class="card-icon"><i class="fas fa-arrow-down"></i></div>
             <div class="card-info">
               <span class="card-label">الواردات</span>
-              <span class="card-value" id="total-income">0 ر.س</span>
+              <span class="card-value" id="total-income">0 د.ع</span>
             </div>
           </div>
           <div class="summary-card expense" onclick="openAddTransaction('expense')">
             <div class="card-icon"><i class="fas fa-arrow-up"></i></div>
             <div class="card-info">
               <span class="card-label">المصروفات</span>
-              <span class="card-value" id="total-expense">0 ر.س</span>
+              <span class="card-value" id="total-expense">0 د.ع</span>
             </div>
           </div>
           <div class="summary-card debt" onclick="openAddTransaction('debt')">
             <div class="card-icon"><i class="fas fa-hand-holding-usd"></i></div>
             <div class="card-info">
               <span class="card-label">الديون</span>
-              <span class="card-value" id="total-debt">0 ر.س</span>
+              <span class="card-value" id="total-debt">0 د.ع</span>
             </div>
           </div>
           <div class="summary-card receivable" onclick="openAddTransaction('receivable')">
             <div class="card-icon"><i class="fas fa-file-invoice"></i></div>
             <div class="card-info">
               <span class="card-label">المستحقات</span>
-              <span class="card-value" id="total-receivable">0 ر.س</span>
+              <span class="card-value" id="total-receivable">0 د.ع</span>
             </div>
           </div>
         </div>
@@ -178,7 +178,7 @@
       <div id="page-about" class="page">
         <div class="about-card">
           <div class="about-icon">&#x1F3D6;</div>
-          <h2>مصيفي</h2>
+          <h2>مصاريفي</h2>
           <p class="about-version">الإصدار 1.0</p>
           <p class="about-desc">تطبيق إدارة الحسابات اليومية<br>المصروفات - الواردات - الديون - المستحقات</p>
           <div class="about-features">

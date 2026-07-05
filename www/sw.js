@@ -1,4 +1,4 @@
-// Service Worker for مصيفي
+﻿// Service Worker for مصاريفي
 const CACHE_NAME = 'masyafi-v1';
 const urlsToCache = [
   'index.html',

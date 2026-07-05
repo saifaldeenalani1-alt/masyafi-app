@@ -1,6 +1,6 @@
-{
+﻿{
   "appId": "com.masyafi.app",
-  "appName": "مصيفي",
+  "appName": "مصاريفي",
   "webDir": "www",
   "bundledWebRuntime": false,
   "server": {

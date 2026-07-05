@@ -157,7 +157,7 @@ async function renderTransactionList(containerId, transactions) {
     const dateStr = new Date(tx.date).toLocaleDateString('ar-SA-u-nu-latn', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
     const badge = tx.groupId && groupMap[tx.groupId] ? `<span class="tx-group-badge">${groupMap[tx.groupId]}</span>` : '';
     const settleBtn = (tx.type === 'debt' || tx.type === 'receivable') && !tx.settled
-      ? `<button class="tx-settle" onclick="settleTransaction(${tx.id})" title="${tx.type === 'debt' ? 'تسديد الدين' : 'تحصيل المستحق'}"><i class="fas fa-check-circle"></i></button>`
+      ? `<button class="tx-settle" onclick="settleTransaction(${tx.id})">${tx.type === 'debt' ? '💳 سدد' : '💰 تحصيل'}</button>`
       : '';
     const settledBadge = tx.settled ? `<span class="tx-settled-badge">✅ تمت</span>` : '';
     html += `

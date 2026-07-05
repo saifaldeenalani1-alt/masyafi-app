@@ -114,7 +114,7 @@ async function renderHome() {
   const pending = { debt: 0, receivable: 0 };
   transactions.forEach(tx => {
     if (tx.type === 'debt' || tx.type === 'receivable') {
-      if (!tx.settled) { totals[tx.type] += tx.amount; pending[tx.type]++; }
+      if (!tx.settled) { const rem = tx.remaining ?? tx.amount; totals[tx.type] += Math.max(0, rem); pending[tx.type]++; }
     } else if (totals[tx.type] !== undefined) totals[tx.type] += tx.amount;
   });
   document.getElementById('total-income').textContent = formatCurrency(totals.income);
@@ -156,16 +156,21 @@ async function renderTransactionList(containerId, transactions) {
   for (const tx of transactions) {
     const dateStr = new Date(tx.date).toLocaleDateString('ar-SA-u-nu-latn', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
     const badge = tx.groupId && groupMap[tx.groupId] ? `<span class="tx-group-badge">${groupMap[tx.groupId]}</span>` : '';
-    const settleBtn = (tx.type === 'debt' || tx.type === 'receivable') && !tx.settled
+    const isPending = (tx.type === 'debt' || tx.type === 'receivable') && !tx.settled;
+    const settleBtn = isPending
       ? `<button class="tx-settle" onclick="settleTransaction(${tx.id})">${tx.type === 'debt' ? '💳 سدد' : '💰 تحصيل'}</button>`
       : '';
     const settledBadge = tx.settled ? `<span class="tx-settled-badge">✅ تمت</span>` : '';
+    const remainingStr = isPending
+      ? `<div class="tx-remaining">متبقي: ${formatCurrency(Math.max(0, tx.remaining ?? tx.amount))}</div>`
+      : '';
     html += `
       <div class="transaction-item">
         <div class="tx-icon ${tx.type}"><i class="fas ${typeIcons[tx.type]}"></i></div>
         <div class="tx-info">
           <div class="tx-desc">${esc(tx.description || typeNames[tx.type])} ${badge} ${settledBadge}</div>
           <div class="tx-date">${dateStr}</div>
+          ${remainingStr}
         </div>
         <div class="tx-amount ${tx.type}">${formatCurrency(tx.amount)}</div>
         ${settleBtn}
@@ -240,7 +245,9 @@ async function saveTransaction() {
   await db.transactions.add({
     accountId: currentAccountId, type: selectedTxType, amount,
     description: description || '', groupId: groupId || null,
-    date, createdAt: new Date().toISOString(), settled: false
+    date, createdAt: new Date().toISOString(),
+    settled: false,
+    remaining: (selectedTxType === 'debt' || selectedTxType === 'receivable') ? amount : null
   });
   closeModal('add-transaction-modal');
   showToast('تمت إضافة المعاملة بنجاح');
@@ -260,23 +267,36 @@ async function settleTransaction(id) {
   const tx = await db.transactions.get(id);
   if (!tx) return;
   const isDebt = tx.type === 'debt';
-  const title = isDebt ? 'تسديد دين' : 'تحصيل مستحق';
-  const msg = isDebt
-    ? `هل تريد تسجيل سداد هذا الدين كـ "مصروف" بمبلغ ${formatCurrency(tx.amount)}؟`
-    : `هل تريد تسجيل تحصيل هذا المستحق كـ "وارد" بمبلغ ${formatCurrency(tx.amount)}؟`;
-  showConfirm(title, msg, async () => {
-    const newType = isDebt ? 'expense' : 'income';
-    await db.transactions.add({
-      accountId: tx.accountId, type: newType, amount: tx.amount,
-      description: (isDebt ? 'سداد دين: ' : 'تحصيل مستحق: ') + (tx.description || ''),
-      groupId: tx.groupId, date: new Date().toISOString().split('T')[0],
-      createdAt: new Date().toISOString(), settled: true, settlesId: tx.id
-    });
-    await db.transactions.update(id, { settled: true });
-    showToast(isDebt ? 'تم تسجيل سداد الدين' : 'تم تسجيل تحصيل المستحق');
-    await refreshApp();
-    if (currentPage === 'transactions') renderTransactions();
+  const remaining = tx.remaining ?? tx.amount;
+  const settleAmountStr = prompt(
+    isDebt
+      ? `المبلغ المتبقي: ${formatCurrency(Math.max(0, remaining))}\nأدخل المبلغ المراد تسديده:`
+      : `المبلغ المتبقي: ${formatCurrency(Math.max(0, remaining))}\nأدخل المبلغ المراد تحصيله:`,
+    Math.max(0, remaining)
+  );
+  if (settleAmountStr === null) return;
+  const settleAmount = parseFloat(settleAmountStr);
+  if (settleAmount <= 0 || settleAmount > Math.max(0, remaining)) {
+    showToast('الرجاء إدخال مبلغ صحيح');
+    return;
+  }
+  const newType = isDebt ? 'expense' : 'income';
+  const newRemaining = Math.max(0, remaining - settleAmount);
+  await db.transactions.add({
+    accountId: tx.accountId, type: newType, amount: settleAmount,
+    description: (isDebt ? 'سداد دين: ' : 'تحصيل مستحق: ') + (tx.description || ''),
+    groupId: tx.groupId, date: new Date().toISOString().split('T')[0],
+    createdAt: new Date().toISOString(), settled: true, settlesId: tx.id
   });
+  if (newRemaining <= 0) {
+    await db.transactions.update(id, { settled: true, remaining: 0 });
+    showToast(isDebt ? 'تم تسديد الدين بالكامل' : 'تم تحصيل المستحق بالكامل');
+  } else {
+    await db.transactions.update(id, { remaining: newRemaining });
+    showToast(`تم تسوية ${formatCurrency(settleAmount)}. المتبقي: ${formatCurrency(newRemaining)}`);
+  }
+  await refreshApp();
+  if (currentPage === 'transactions') renderTransactions();
 }
 
 // ============================
@@ -324,7 +344,8 @@ async function saveAccount() {
     await db.transactions.add({
       accountId: id, type: 'income', amount: balance,
       description: 'رصيد افتتاحي', groupId: null,
-      date: new Date().toISOString().split('T')[0], createdAt: new Date().toISOString()
+      date: new Date().toISOString().split('T')[0], createdAt: new Date().toISOString(),
+      settled: false, remaining: null
     });
   }
   closeModal('add-account-modal');
@@ -513,7 +534,7 @@ async function exportPDF(filter) {
 
     const totals = { income: 0, expense: 0, debt: 0, receivable: 0 };
     sorted.forEach(tx => {
-      if (tx.type === 'debt' || tx.type === 'receivable') { if (!tx.settled) totals[tx.type] += tx.amount; }
+      if (tx.type === 'debt' || tx.type === 'receivable') { if (!tx.settled) { const rem = tx.remaining ?? tx.amount; totals[tx.type] += Math.max(0, rem); } }
       else if (totals[tx.type] !== undefined) totals[tx.type] += tx.amount;
     });
     const balance = totals.income - totals.expense;
@@ -523,9 +544,10 @@ async function exportPDF(filter) {
     let rowsHtml = '';
     for (const tx of sorted) {
       const dateStr = new Date(tx.date).toLocaleDateString('ar-SA-u-nu-latn');
+      const extraLabel = (tx.type === 'debt' || tx.type === 'receivable') && !tx.settled ? ` (متبقي: ${formatCurrency(Math.max(0, tx.remaining ?? tx.amount))})` : '';
       rowsHtml += `<tr>
         <td>${dateStr}</td>
-        <td>${esc(tx.description || typeNames[tx.type])}${settledLabel(tx)}</td>
+        <td>${esc(tx.description || typeNames[tx.type])}${settledLabel(tx)}${extraLabel}</td>
         <td>${tx.groupId && groupMap[tx.groupId] ? esc(groupMap[tx.groupId]) : '-'}</td>
         <td>${typeNames[tx.type]}</td>
         <td style="text-align:left;font-weight:bold">${formatCurrency(tx.amount)}</td>
@@ -617,7 +639,7 @@ async function exportPDFByGroup() {
 
     const totals = { income: 0, expense: 0, debt: 0, receivable: 0 };
     sorted.forEach(tx => {
-      if (tx.type === 'debt' || tx.type === 'receivable') { if (!tx.settled) totals[tx.type] += tx.amount; }
+      if (tx.type === 'debt' || tx.type === 'receivable') { if (!tx.settled) { const rem = tx.remaining ?? tx.amount; totals[tx.type] += Math.max(0, rem); } }
       else if (totals[tx.type] !== undefined) totals[tx.type] += tx.amount;
     });
     const balance = totals.income - totals.expense;
@@ -626,9 +648,10 @@ async function exportPDFByGroup() {
 
     let rowsHtml = '';
     for (const tx of sorted) {
+      const extraLabel = (tx.type === 'debt' || tx.type === 'receivable') && !tx.settled ? ` (متبقي: ${formatCurrency(Math.max(0, tx.remaining ?? tx.amount))})` : '';
       rowsHtml += `<tr>
         <td>${new Date(tx.date).toLocaleDateString('ar-SA-u-nu-latn')}</td>
-        <td>${esc(tx.description || typeNames[tx.type])}${settledLabel(tx)}</td>
+        <td>${esc(tx.description || typeNames[tx.type])}${settledLabel(tx)}${extraLabel}</td>
         <td>${typeNames[tx.type]}</td>
         <td style="text-align:left;font-weight:bold">${formatCurrency(tx.amount)}</td>
       </tr>`;

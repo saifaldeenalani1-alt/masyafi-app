@@ -199,6 +199,7 @@ input, select, textarea, button { font-family: 'Tajawal', sans-serif; }
 }
 .tx-settle:hover { background: var(--income); color: white; }
 .tx-settled-badge { font-size: 10px; color: var(--income); font-weight: 500; }
+.tx-remaining { font-size: 11px; color: var(--debt); font-weight: 600; margin-top: 2px; }
 .empty-state {
   text-align: center; padding: 40px 20px; color: var(--text-secondary);
 }

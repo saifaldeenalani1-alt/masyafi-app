@@ -190,6 +190,13 @@ input, select, textarea, button { font-family: 'Tajawal', sans-serif; }
   opacity: 0.5; transition: opacity 0.2s;
 }
 .tx-delete:hover { opacity: 1; color: var(--expense); }
+.tx-settle {
+  background: none; border: none; color: var(--income);
+  font-size: 18px; cursor: pointer; padding: 4px;
+  transition: transform 0.2s;
+}
+.tx-settle:hover { transform: scale(1.2); }
+.tx-settled-badge { font-size: 10px; color: var(--income); font-weight: 500; }
 .empty-state {
   text-align: center; padding: 40px 20px; color: var(--text-secondary);
 }

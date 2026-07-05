@@ -111,11 +111,16 @@ async function renderHome() {
 
   const transactions = await db.transactions.where({ accountId: currentAccountId }).toArray();
   const totals = { income: 0, expense: 0, debt: 0, receivable: 0 };
-  transactions.forEach(tx => { if (totals[tx.type] !== undefined) totals[tx.type] += tx.amount; });
+  const pending = { debt: 0, receivable: 0 };
+  transactions.forEach(tx => {
+    if (tx.type === 'debt' || tx.type === 'receivable') {
+      if (!tx.settled) { totals[tx.type] += tx.amount; pending[tx.type]++; }
+    } else if (totals[tx.type] !== undefined) totals[tx.type] += tx.amount;
+  });
   document.getElementById('total-income').textContent = formatCurrency(totals.income);
   document.getElementById('total-expense').textContent = formatCurrency(totals.expense);
-  document.getElementById('total-debt').textContent = formatCurrency(totals.debt);
-  document.getElementById('total-receivable').textContent = formatCurrency(totals.receivable);
+  document.getElementById('total-debt').textContent = formatCurrency(totals.debt) + (pending.debt ? ` (${pending.debt} معلق)` : '');
+  document.getElementById('total-receivable').textContent = formatCurrency(totals.receivable) + (pending.receivable ? ` (${pending.receivable} معلق)` : '');
 
   const sorted = transactions.sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10);
   renderTransactionList('recent-transactions', sorted);
@@ -125,8 +130,8 @@ async function calculateBalance(accountId) {
   const transactions = await db.transactions.where({ accountId }).toArray();
   let balance = 0;
   transactions.forEach(tx => {
-    if (tx.type === 'income' || tx.type === 'receivable') balance += tx.amount;
-    else balance -= tx.amount;
+    if (tx.type === 'income') balance += tx.amount;
+    else if (tx.type === 'expense') balance -= tx.amount;
   });
   return balance;
 }
@@ -151,14 +156,19 @@ async function renderTransactionList(containerId, transactions) {
   for (const tx of transactions) {
     const dateStr = new Date(tx.date).toLocaleDateString('ar-SA-u-nu-latn', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
     const badge = tx.groupId && groupMap[tx.groupId] ? `<span class="tx-group-badge">${groupMap[tx.groupId]}</span>` : '';
+    const settleBtn = (tx.type === 'debt' || tx.type === 'receivable') && !tx.settled
+      ? `<button class="tx-settle" onclick="settleTransaction(${tx.id})" title="${tx.type === 'debt' ? 'تسديد الدين' : 'تحصيل المستحق'}"><i class="fas fa-check-circle"></i></button>`
+      : '';
+    const settledBadge = tx.settled ? `<span class="tx-settled-badge">✅ تمت</span>` : '';
     html += `
       <div class="transaction-item">
         <div class="tx-icon ${tx.type}"><i class="fas ${typeIcons[tx.type]}"></i></div>
         <div class="tx-info">
-          <div class="tx-desc">${esc(tx.description || typeNames[tx.type])} ${badge}</div>
+          <div class="tx-desc">${esc(tx.description || typeNames[tx.type])} ${badge} ${settledBadge}</div>
           <div class="tx-date">${dateStr}</div>
         </div>
         <div class="tx-amount ${tx.type}">${formatCurrency(tx.amount)}</div>
+        ${settleBtn}
         <button class="tx-delete" onclick="deleteTransaction(${tx.id})" title="حذف"><i class="fas fa-times"></i></button>
       </div>`;
   }
@@ -230,7 +240,7 @@ async function saveTransaction() {
   await db.transactions.add({
     accountId: currentAccountId, type: selectedTxType, amount,
     description: description || '', groupId: groupId || null,
-    date, createdAt: new Date().toISOString()
+    date, createdAt: new Date().toISOString(), settled: false
   });
   closeModal('add-transaction-modal');
   showToast('تمت إضافة المعاملة بنجاح');
@@ -241,6 +251,29 @@ async function deleteTransaction(id) {
   showConfirm('حذف المعاملة', 'هل أنت متأكد من حذف هذه المعاملة؟', async () => {
     await db.transactions.delete(id);
     showToast('تم حذف المعاملة');
+    await refreshApp();
+    if (currentPage === 'transactions') renderTransactions();
+  });
+}
+
+async function settleTransaction(id) {
+  const tx = await db.transactions.get(id);
+  if (!tx) return;
+  const isDebt = tx.type === 'debt';
+  const title = isDebt ? 'تسديد دين' : 'تحصيل مستحق';
+  const msg = isDebt
+    ? `هل تريد تسجيل سداد هذا الدين كـ "مصروف" بمبلغ ${formatCurrency(tx.amount)}؟`
+    : `هل تريد تسجيل تحصيل هذا المستحق كـ "وارد" بمبلغ ${formatCurrency(tx.amount)}؟`;
+  showConfirm(title, msg, async () => {
+    const newType = isDebt ? 'expense' : 'income';
+    await db.transactions.add({
+      accountId: tx.accountId, type: newType, amount: tx.amount,
+      description: (isDebt ? 'سداد دين: ' : 'تحصيل مستحق: ') + (tx.description || ''),
+      groupId: tx.groupId, date: new Date().toISOString().split('T')[0],
+      createdAt: new Date().toISOString(), settled: true, settlesId: tx.id
+    });
+    await db.transactions.update(id, { settled: true });
+    showToast(isDebt ? 'تم تسجيل سداد الدين' : 'تم تسجيل تحصيل المستحق');
     await refreshApp();
     if (currentPage === 'transactions') renderTransactions();
   });
@@ -479,17 +512,20 @@ async function exportPDF(filter) {
     const sorted = transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
 
     const totals = { income: 0, expense: 0, debt: 0, receivable: 0 };
-    sorted.forEach(tx => { if (totals[tx.type] !== undefined) totals[tx.type] += tx.amount; });
-    const balance = totals.income + totals.receivable - totals.expense - totals.debt;
+    sorted.forEach(tx => {
+      if (tx.type === 'debt' || tx.type === 'receivable') { if (!tx.settled) totals[tx.type] += tx.amount; }
+      else if (totals[tx.type] !== undefined) totals[tx.type] += tx.amount;
+    });
+    const balance = totals.income - totals.expense;
     const typeNames = { income: 'وارد', expense: 'مصروف', debt: 'دين', receivable: 'مستحق' };
+    const settledLabel = tx => tx.settled ? ' ✅' : '';
 
-    // إنشاء HTML للتقرير
     let rowsHtml = '';
     for (const tx of sorted) {
       const dateStr = new Date(tx.date).toLocaleDateString('ar-SA-u-nu-latn');
       rowsHtml += `<tr>
         <td>${dateStr}</td>
-        <td>${esc(tx.description || typeNames[tx.type])}</td>
+        <td>${esc(tx.description || typeNames[tx.type])}${settledLabel(tx)}</td>
         <td>${tx.groupId && groupMap[tx.groupId] ? esc(groupMap[tx.groupId]) : '-'}</td>
         <td>${typeNames[tx.type]}</td>
         <td style="text-align:left;font-weight:bold">${formatCurrency(tx.amount)}</td>
@@ -580,15 +616,19 @@ async function exportPDFByGroup() {
     const sorted = transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
 
     const totals = { income: 0, expense: 0, debt: 0, receivable: 0 };
-    sorted.forEach(tx => { if (totals[tx.type] !== undefined) totals[tx.type] += tx.amount; });
-    const balance = totals.income + totals.receivable - totals.expense - totals.debt;
+    sorted.forEach(tx => {
+      if (tx.type === 'debt' || tx.type === 'receivable') { if (!tx.settled) totals[tx.type] += tx.amount; }
+      else if (totals[tx.type] !== undefined) totals[tx.type] += tx.amount;
+    });
+    const balance = totals.income - totals.expense;
     const typeNames = { income: 'وارد', expense: 'مصروف', debt: 'دين', receivable: 'مستحق' };
+    const settledLabel = tx => tx.settled ? ' ✅' : '';
 
     let rowsHtml = '';
     for (const tx of sorted) {
       rowsHtml += `<tr>
         <td>${new Date(tx.date).toLocaleDateString('ar-SA-u-nu-latn')}</td>
-        <td>${esc(tx.description || typeNames[tx.type])}</td>
+        <td>${esc(tx.description || typeNames[tx.type])}${settledLabel(tx)}</td>
         <td>${typeNames[tx.type]}</td>
         <td style="text-align:left;font-weight:bold">${formatCurrency(tx.amount)}</td>
       </tr>`;

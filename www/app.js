@@ -149,7 +149,7 @@ async function renderTransactionList(containerId, transactions) {
 
   let html = '';
   for (const tx of transactions) {
-    const dateStr = new Date(tx.date).toLocaleDateString('ar-SA', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+    const dateStr = new Date(tx.date).toLocaleDateString('ar-SA-u-nu-latn', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
     const badge = tx.groupId && groupMap[tx.groupId] ? `<span class="tx-group-badge">${groupMap[tx.groupId]}</span>` : '';
     html += `
       <div class="transaction-item">
@@ -486,7 +486,7 @@ async function exportPDF(filter) {
     // إنشاء HTML للتقرير
     let rowsHtml = '';
     for (const tx of sorted) {
-      const dateStr = new Date(tx.date).toLocaleDateString('ar-SA');
+      const dateStr = new Date(tx.date).toLocaleDateString('ar-SA-u-nu-latn');
       rowsHtml += `<tr>
         <td>${dateStr}</td>
         <td>${esc(tx.description || typeNames[tx.type])}</td>
@@ -500,7 +500,7 @@ async function exportPDF(filter) {
       <div style="font-family:Tajawal,Arial,sans-serif;padding:20px;direction:rtl">
         <h1 style="text-align:center;color:#1a73e8;font-size:22px;margin-bottom:4px">تقرير المعاملات المالية</h1>
         <p style="text-align:center;color:#666;font-size:13px;margin:0 0 4px">الحساب: ${esc(account.name)}</p>
-        <p style="text-align:center;color:#666;font-size:13px;margin:0 0 16px">التاريخ: ${new Date().toLocaleDateString('ar-SA')}</p>
+        <p style="text-align:center;color:#666;font-size:13px;margin:0 0 16px">التاريخ: ${new Date().toLocaleDateString('ar-SA-u-nu-latn')}</p>
         <div style="display:flex;justify-content:space-around;background:#f0f4ff;padding:12px;border-radius:8px;margin-bottom:16px;font-size:13px">
           <span><strong>الرصيد:</strong> ${formatCurrency(balance)}</span>
           <span><strong>الواردات:</strong> ${formatCurrency(totals.income)}</span>
@@ -587,7 +587,7 @@ async function exportPDFByGroup() {
     let rowsHtml = '';
     for (const tx of sorted) {
       rowsHtml += `<tr>
-        <td>${new Date(tx.date).toLocaleDateString('ar-SA')}</td>
+        <td>${new Date(tx.date).toLocaleDateString('ar-SA-u-nu-latn')}</td>
         <td>${esc(tx.description || typeNames[tx.type])}</td>
         <td>${typeNames[tx.type]}</td>
         <td style="text-align:left;font-weight:bold">${formatCurrency(tx.amount)}</td>
@@ -679,7 +679,7 @@ function clearAllData() {
 // ============================
 function formatCurrency(amount) {
   const num = Number(amount) || 0;
-  return num.toLocaleString('ar-SA') + ' د.ع';
+  return num.toLocaleString('ar-SA-u-nu-latn') + ' د.ع';
 }
 
 function esc(str) {

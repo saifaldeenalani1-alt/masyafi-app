@@ -1,0 +1,18 @@
+{
+  "name": "مصيفي - مدير الحسابات",
+  "short_name": "مصيفي",
+  "description": "تطبيق إدارة الحسابات اليومية - المصروفات، الواردات، الديون، المستحقات",
+  "start_url": "index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1a73e8",
+  "theme_color": "#1a73e8",
+  "dir": "rtl",
+  "lang": "ar",
+  "scope": "./",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1a73e8">
+<meta name="description" content="تطبيق مصيفي - إدارة المصاريف والواردات اليومية">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<title>مصيفي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+  <!-- شاشة البداية -->
+  <div id="splash-screen">
+    <div class="splash-content">
+      <div class="splash-icon">&#x1F3D6;</div>
+      <h1>مصيفي</h1>
+      <p>مدير حساباتك اليومية</p>
+      <div class="loader"></div>
+    </div>
+  </div>
+
+  <!-- التطبيق الرئيسي -->
+  <div id="main-app" style="display:none">
+
+    <!-- الشريط العلوي -->
+    <header id="app-header">
+      <button id="menu-btn" class="header-btn" onclick="toggleMenu()"><i class="fas fa-bars"></i></button>
+      <h1 id="page-title">الرئيسية</h1>
+      <button id="account-btn" class="header-btn" onclick="showAccountSelector()">
+        <i class="fas fa-user"></i>
+        <span id="active-account-name">الحساب الرئيسي</span>
+      </button>
+    </header>
+
+    <!-- القائمة الجانبية -->
+    <div id="side-menu-overlay" onclick="toggleMenu()"></div>
+    <div id="side-menu">
+      <div class="menu-header">
+        <div class="menu-logo">&#x1F3D6;</div>
+        <h2>مصيفي</h2>
+        <p>الإصدار 1.0</p>
+      </div>
+      <div class="menu-items">
+        <div class="menu-item active" onclick="navigateTo('home')">
+          <i class="fas fa-home"></i><span>الرئيسية</span>
+        </div>
+        <div class="menu-item" onclick="navigateTo('transactions')">
+          <i class="fas fa-list"></i><span>كل المعاملات</span>
+        </div>
+        <div class="menu-item" onclick="navigateTo('accounts')">
+          <i class="fas fa-wallet"></i><span>الحسابات</span>
+        </div>
+        <div class="menu-item" onclick="navigateTo('groups')">
+          <i class="fas fa-folder"></i><span>المجموعات</span>
+        </div>
+        <div class="menu-divider"></div>
+        <div class="menu-item" onclick="navigateTo('settings')">
+          <i class="fas fa-cog"></i><span>الإعدادات</span>
+        </div>
+        <div class="menu-item" onclick="navigateTo('about')">
+          <i class="fas fa-info-circle"></i><span>حول التطبيق</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- محتوى الصفحات -->
+    <div id="page-content">
+
+      <!-- الصفحة الرئيسية -->
+      <div id="page-home" class="page active">
+        <div class="welcome-banner">
+          <div class="welcome-text">
+            <h3 id="greeting">مرحباً بك</h3>
+            <p id="account-balance-display">الرصيد الحالي: 0 ر.س</p>
+          </div>
+          <div class="welcome-icon">&#x1F4B0;</div>
+        </div>
+
+        <div class="summary-cards">
+          <div class="summary-card income" onclick="openAddTransaction('income')">
+            <div class="card-icon"><i class="fas fa-arrow-down"></i></div>
+            <div class="card-info">
+              <span class="card-label">الواردات</span>
+              <span class="card-value" id="total-income">0 ر.س</span>
+            </div>
+          </div>
+          <div class="summary-card expense" onclick="openAddTransaction('expense')">
+            <div class="card-icon"><i class="fas fa-arrow-up"></i></div>
+            <div class="card-info">
+              <span class="card-label">المصروفات</span>
+              <span class="card-value" id="total-expense">0 ر.س</span>
+            </div>
+          </div>
+          <div class="summary-card debt" onclick="openAddTransaction('debt')">
+            <div class="card-icon"><i class="fas fa-hand-holding-usd"></i></div>
+            <div class="card-info">
+              <span class="card-label">الديون</span>
+              <span class="card-value" id="total-debt">0 ر.س</span>
+            </div>
+          </div>
+          <div class="summary-card receivable" onclick="openAddTransaction('receivable')">
+            <div class="card-icon"><i class="fas fa-file-invoice"></i></div>
+            <div class="card-info">
+              <span class="card-label">المستحقات</span>
+              <span class="card-value" id="total-receivable">0 ر.س</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-header">
+          <h3>آخر المعاملات</h3>
+          <button class="text-link" onclick="navigateTo('transactions')">عرض الكل</button>
+        </div>
+        <div id="recent-transactions" class="transactions-list"></div>
+      </div>
+
+      <!-- صفحة كل المعاملات -->
+      <div id="page-transactions" class="page">
+        <div class="filters-bar">
+          <select id="filter-type" onchange="renderTransactions()">
+            <option value="all">الكل</option>
+            <option value="income">الواردات</option>
+            <option value="expense">المصروفات</option>
+            <option value="debt">الديون</option>
+            <option value="receivable">المستحقات</option>
+          </select>
+          <select id="filter-group" onchange="renderTransactions()">
+            <option value="all">كل المجموعات</option>
+          </select>
+          <button onclick="renderTransactions()" class="btn-filter"><i class="fas fa-search"></i></button>
+        </div>
+        <div id="all-transactions" class="transactions-list"></div>
+      </div>
+
+      <!-- صفحة الحسابات -->
+      <div id="page-accounts" class="page">
+        <div class="page-toolbar">
+          <button onclick="showAddAccountModal()" class="btn-primary"><i class="fas fa-plus"></i> حساب جديد</button>
+        </div>
+        <div id="accounts-list" class="accounts-list"></div>
+      </div>
+
+      <!-- صفحة المجموعات -->
+      <div id="page-groups" class="page">
+        <div class="page-toolbar">
+          <button onclick="showAddGroupModal()" class="btn-primary"><i class="fas fa-plus"></i> مجموعة جديدة</button>
+        </div>
+        <div id="groups-list" class="groups-list"></div>
+      </div>
+
+      <!-- صفحة الإعدادات -->
+      <div id="page-settings" class="page">
+        <div class="settings-section">
+          <h3><i class="fas fa-database"></i> النسخ الاحتياطي</h3>
+          <button onclick="backupData()" class="btn-setting"><i class="fas fa-download"></i> عمل نسخة احتياطية</button>
+          <button onclick="document.getElementById('restore-input').click()" class="btn-setting"><i class="fas fa-upload"></i> استعادة نسخة</button>
+          <input type="file" id="restore-input" accept=".json" style="display:none" onchange="restoreData(event)">
+        </div>
+        <div class="settings-section">
+          <h3><i class="fas fa-file-pdf"></i> تصدير</h3>
+          <button onclick="exportPDF('all')" class="btn-setting"><i class="fas fa-file-pdf"></i> تصدير جميع المعاملات PDF</button>
+          <button onclick="showExportByGroup()" class="btn-setting"><i class="fas fa-file-pdf"></i> تصدير حسب المجموعة PDF</button>
+        </div>
+        <div class="settings-section">
+          <h3><i class="fas fa-trash"></i> إدارة البيانات</h3>
+          <button onclick="clearAllData()" class="btn-setting danger"><i class="fas fa-trash-alt"></i> حذف جميع البيانات</button>
+        </div>
+      </div>
+
+      <!-- صفحة حول التطبيق -->
+      <div id="page-about" class="page">
+        <div class="about-card">
+          <div class="about-icon">&#x1F3D6;</div>
+          <h2>مصيفي</h2>
+          <p class="about-version">الإصدار 1.0</p>
+          <p class="about-desc">تطبيق إدارة الحسابات اليومية<br>المصروفات - الواردات - الديون - المستحقات</p>
+          <div class="about-features">
+            <span><i class="fas fa-check-circle"></i> حسابات متعددة</span>
+            <span><i class="fas fa-check-circle"></i> مجموعات معاملات</span>
+            <span><i class="fas fa-check-circle"></i> نسخ احتياطي واستعادة</span>
+            <span><i class="fas fa-check-circle"></i> تصدير PDF</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- شريط التنقل السفلي -->
+    <nav id="bottom-nav">
+      <div class="nav-item active" onclick="navigateTo('home')" data-page="home">
+        <i class="fas fa-home"></i><span>الرئيسية</span>
+      </div>
+      <div class="nav-item" onclick="navigateTo('transactions')" data-page="transactions">
+        <i class="fas fa-list"></i><span>المعاملات</span>
+      </div>
+      <div class="nav-item nav-add" onclick="showAddTransactionModal()">
+        <i class="fas fa-plus"></i>
+      </div>
+      <div class="nav-item" onclick="navigateTo('groups')" data-page="groups">
+        <i class="fas fa-folder"></i><span>المجموعات</span>
+      </div>
+      <div class="nav-item" onclick="navigateTo('settings')" data-page="settings">
+        <i class="fas fa-cog"></i><span>الإعدادات</span>
+      </div>
+    </nav>
+
+    <!-- نافذة إضافة معاملة -->
+    <div id="add-transaction-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('add-transaction-modal')">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="modal-transaction-title">إضافة معاملة</h2>
+          <button class="close-btn" onclick="closeModal('add-transaction-modal')">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>نوع المعاملة</label>
+            <div class="type-selector" id="transaction-type-selector">
+              <div class="type-option income selected" data-type="income" onclick="selectTransactionType('income')">
+                <i class="fas fa-arrow-down"></i> وارد
+              </div>
+              <div class="type-option expense" data-type="expense" onclick="selectTransactionType('expense')">
+                <i class="fas fa-arrow-up"></i> مصروف
+              </div>
+              <div class="type-option debt" data-type="debt" onclick="selectTransactionType('debt')">
+                <i class="fas fa-hand-holding-usd"></i> دين
+              </div>
+              <div class="type-option receivable" data-type="receivable" onclick="selectTransactionType('receivable')">
+                <i class="fas fa-file-invoice"></i> مستحق
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>المبلغ (ريال)</label>
+            <input type="number" id="transaction-amount" class="form-input" placeholder="أدخل المبلغ" min="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label>الوصف</label>
+            <input type="text" id="transaction-desc" class="form-input" placeholder="وصف المعاملة">
+          </div>
+          <div class="form-group">
+            <label>المجموعة (اختياري)</label>
+            <select id="transaction-group" class="form-input">
+              <option value="">بدون مجموعة</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>التاريخ</label>
+            <input type="date" id="transaction-date" class="form-input">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" onclick="closeModal('add-transaction-modal')">إلغاء</button>
+          <button class="btn-primary" onclick="saveTransaction()">حفظ</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- نافذة إضافة حساب -->
+    <div id="add-account-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('add-account-modal')">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>إضافة حساب جديد</h2>
+          <button class="close-btn" onclick="closeModal('add-account-modal')">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>اسم الحساب</label>
+            <input type="text" id="account-name" class="form-input" placeholder="اسم الحساب">
+          </div>
+          <div class="form-group">
+            <label>الرصيد الافتتاحي</label>
+            <input type="number" id="account-balance" class="form-input" placeholder="0" value="0" min="0" step="0.01">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" onclick="closeModal('add-account-modal')">إلغاء</button>
+          <button class="btn-primary" onclick="saveAccount()">حفظ</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- نافذة إضافة مجموعة -->
+    <div id="add-group-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('add-group-modal')">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>إضافة مجموعة جديدة</h2>
+          <button class="close-btn" onclick="closeModal('add-group-modal')">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>عنوان المجموعة</label>
+            <input type="text" id="group-name" class="form-input" placeholder="مثال: مشتريات شهرية">
+          </div>
+          <div class="form-group">
+            <label>وصف (اختياري)</label>
+            <textarea id="group-desc" class="form-input" placeholder="وصف المجموعة" rows="2"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" onclick="closeModal('add-group-modal')">إلغاء</button>
+          <button class="btn-primary" onclick="saveGroup()">حفظ</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- نافذة تصدير حسب المجموعة -->
+    <div id="export-group-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('export-group-modal')">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>تصدير PDF حسب المجموعة</h2>
+          <button class="close-btn" onclick="closeModal('export-group-modal')">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>اختر المجموعة</label>
+            <select id="export-group-select" class="form-input"></select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" onclick="closeModal('export-group-modal')">إلغاء</button>
+          <button class="btn-primary" onclick="exportPDFByGroup()">تصدير</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- نافذة اختيار الحساب -->
+    <div id="account-selector-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('account-selector-modal')">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>اختر حساباً</h2>
+          <button class="close-btn" onclick="closeModal('account-selector-modal')">&times;</button>
+        </div>
+        <div class="modal-body" id="account-selector-list"></div>
+      </div>
+    </div>
+
+    <!-- نافذة تأكيد -->
+    <div id="confirm-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('confirm-modal')">
+      <div class="modal-content modal-sm">
+        <div class="modal-header">
+          <h2 id="confirm-title">تأكيد</h2>
+          <button class="close-btn" onclick="closeModal('confirm-modal')">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p id="confirm-message">هل أنت متأكد؟</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" onclick="closeModal('confirm-modal')">إلغاء</button>
+          <button class="btn-danger" id="confirm-btn" onclick="closeModal('confirm-modal')">تأكيد</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- إشعار -->
+    <div id="toast"></div>
+
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.min.js"></script>
+<script src="app.js"></script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}</script>
+</body>
+</html>

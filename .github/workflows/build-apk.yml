@@ -1,0 +1,48 @@
+name: بناء APK - تطبيق مصيفي
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🛒 تحميل الكود
+        uses: actions/checkout@v4
+
+      - name: ☕ تثبيت Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: 📦 تثبيت Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 📥 تثبيت الحزم
+        run: npm ci
+
+      - name: 📱 إعداد Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: 🏗️ إضافة منصة Android
+        run: npx cap add android
+
+      - name: 🔄 مزامنة الملفات
+        run: npx cap sync android
+
+      - name: 🔨 بناء ملف APK
+        run: cd android && ./gradlew assembleDebug --no-daemon
+
+      - name: 📤 رفع ملف APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: masyafi-apk
+          path: android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error

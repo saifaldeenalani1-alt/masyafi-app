@@ -1,0 +1,17 @@
+{
+  "appId": "com.masyafi.app",
+  "appName": "مصيفي",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "http",
+    "allowNavigation": []
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "backgroundColor": "#1a73e8",
+      "androidSplashResourceName": "splash"
+    }
+  }
+}
